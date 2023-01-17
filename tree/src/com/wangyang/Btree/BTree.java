@@ -60,18 +60,18 @@ public class BTree <AnyType extends Comparable<AnyType>>{
        root=null;
    }
    public boolean contains(AnyType x){
-       return contains(x,root);
+       return contains(x,root)==null?false:true;
    }
-   public boolean  contains(AnyType x,BTreeNode<AnyType> t){
+   public BTreeNode<AnyType>  contains(AnyType x,BTreeNode<AnyType> t){
        int pos=0;
        while(pos<t.getKeyNumber()&&x.compareTo(t.getKey(pos))<0){
            pos++;
        }
        if(x.compareTo(t.getKey(pos))==0){
-           return true;
+           return t;
        }else{
            if(t.isLeaf()){
-               return false;
+               return null;
            }else{
                return contains(x,t.getChild(pos));
            }
@@ -171,5 +171,117 @@ public class BTree <AnyType extends Comparable<AnyType>>{
            return t;
        }
        return null;
+   }
+   public boolean remove(AnyType t){
+       return !(remove(t,root)==null);
+   }
+   private AnyType remove(AnyType t,BTreeNode<AnyType> x){
+       BTreeNode<AnyType> target=contains(t,x);
+       if(target==null){
+           return null;
+       }
+       if(target.isLeaf()){
+            target.keys.remove(t);
+            target.childs.pop();
+            if(target==root){
+                return t;
+            }else{
+                if(target.getKeyNumber()<min){
+                    changeOrMerge(t,target.parent);
+                }
+                return t;
+            }
+       }else{
+           int index=target.keys.indexOf(t);
+           BTreeNode<AnyType> child1=target.childs.get(index);
+           BTreeNode<AnyType> child2=target.childs.get(index+1);
+           if(child1.keys.size()>min){
+               int mid=(int)Math.ceil((child1.keys.size()-1)/2.0);
+               AnyType temp=remove(child1.keys.get(mid),child1);
+               target.keys.remove(index);
+               target.keys.add(index,temp);
+           }else if(child2.keys.size()>min){
+               int mid=(int)Math.ceil((child2.keys.size()-1)/2.0);
+               AnyType temp=remove(child2.keys.get(mid),child2);
+               target.keys.remove(index);
+               target.keys.add(index,temp);
+           }else{
+               if(target!=this.root&&target.keys.size()==min){
+                   changeOrMerge(t,target.parent);
+               }else{
+                   merge(target,index,index+1);
+               }
+           }
+           return t;
+       }
+   }
+   private void changeOrMerge(AnyType x,BTreeNode<AnyType> t){
+       int index=0;
+       while(t.keys.get(index).compareTo(x)>=0){
+           index++;
+       }
+       if(index==t.getKeyNumber()){
+           if(t.childs.get(index-1).keys.size()==min){
+               merge(t,index,index-1);
+           }else{
+               change(t,index,index-1);
+           }
+       }else if(index==0){
+           if(t.childs.get(index+1).keys.size()==min){
+               merge(t,index,index+1);
+           }else{
+               change(t,index,index+1);
+           }
+       }else{
+           if(t.childs.get(index-1).keys.size()>min){
+               change(t,index,index-1);
+           }else if(t.childs.get(index+1).keys.size()>min){
+               change(t,index,index+1);
+           }else{
+               merge(t,index,index-1);
+           }
+       }
+   }
+   private void change(BTreeNode<AnyType> t,int index1,int index2){
+       BTreeNode<AnyType> child1=t.childs.get(index1);
+       BTreeNode<AnyType> child2=t.childs.get(index2);
+       if(index1>index2){
+           AnyType temp1=t.keys.get(index2);
+           int index=(int)Math.ceil((child2.getKeyNumber()-1)/2.0);
+           AnyType temp2=child2.keys.get(index);
+           remove(temp2,child2);
+           child2.childs.pop();
+           t.keys.set(index2,temp2);
+           child1.keys.add(0,temp1);
+           child1.childs.push(null);
+       }else{
+           AnyType temp1=t.keys.get(index1);
+           int index=(int)Math.ceil((child2.getKeyNumber()-1)/2.0);
+           AnyType temp2=child2.keys.get(index);
+           remove(temp2,child2);
+           child2.childs.pop();
+           t.keys.set(index1,temp2);
+           child1.keys.addLast(temp1);
+           child1.childs.push(null);
+           t.keys.set(index1,temp2);
+       }
+   }
+   private void merge(BTreeNode<AnyType> t,int index1,int index2){
+       if(index1>index2){
+           int temp=index1;
+           index1=index2;
+           index2=temp;
+       }
+       BTreeNode<AnyType> child1=t.childs.get(index1);
+       BTreeNode<AnyType> child2=t.childs.get(index2);
+       AnyType temp1=t.keys.get(index1);
+       remove(temp1,t);
+       child1.keys.add(temp1);
+       child1.childs.add(child2.childs.get(0));
+       for(int i=0;i<child2.getKeyNumber();i++){
+           child1.keys.add(child2.keys.get(i));
+           child2.childs.add(child2.childs.get(i+1));
+       }
+       t.childs.remove(child2);
    }
 }
