@@ -1,6 +1,7 @@
 package com.wangyang.avl_tree;
 
-import com.wangyang.binarysearchtree.BinarySearchTree;
+
+import java.util.LinkedList;
 
 public class AvlTree<AnyType extends Comparable<AnyType>> {
     private static class AvlNode<AnyType>{
@@ -123,6 +124,74 @@ public class AvlTree<AnyType extends Comparable<AnyType>> {
         return rotateWithLeftChild(t);
     }
     private AvlNode<AnyType> remove(AnyType x,AvlNode<AnyType>t){
-        return t;
+        LinkedList<AvlNode<AnyType>> stack=new LinkedList<>();
+        AvlNode<AnyType> target=null;
+        while(t!=null){
+            if(t.element.compareTo(x)==0){
+                target=t;
+                break;
+            }else if(t.element.compareTo(x)<0){
+                stack.push(t);
+                t=t.right;
+            }else{
+                stack.push(t);
+                t=t.left;
+            }
+        }
+        if(t==null){
+            return null;
+        }
+        if(t.left==null&&t.right==null){
+            if(stack.getFirst().right==t){
+                stack.getFirst().right=null;
+            }else{
+                stack.getFirst().left=null;
+            }
+            return t;
+        }else if(t.left==null){
+            if(stack.getFirst().right==t){
+                stack.getFirst().right=t.right;
+            }else{
+                stack.getFirst().left=t.right;
+            }
+            return t;
+        }else if(t.right==null){
+            if(stack.getFirst().right==t){
+                stack.getFirst().right=t.left;
+            }else{
+                stack.getFirst().left=t.left;
+            }
+            return t;
+        }else{
+           t=target.right;
+           while(t!=null){
+               stack.push(t);
+               t=t.left;
+           }
+           target.element=stack.pop().element;
+           while(!stack.isEmpty()){
+               AvlNode<AnyType> temp=stack.pop();
+               int height1=temp.left==null?0:temp.height;
+               int height2=temp.right==null?0:temp.height;
+               if(Math.abs(height1-height2)<2){
+                   temp.height=Math.max(height1,height2)+1;
+               }else{
+                   if(height1>height2){
+                       if(temp.left.left.height>temp.left.right.height){
+                           rotateWithLeftChild(temp);
+                       }else{
+                           doubleWithLeftChild(temp);
+                       }
+                   }else{
+                       if(temp.right.left.height>temp.right.right.height){
+                           doubleWithLeftChild(temp);
+                       }else{
+                           rotateWithRightChild(temp);
+                       }
+                   }
+               }
+           }
+           return target;
+        }
     }
 }
